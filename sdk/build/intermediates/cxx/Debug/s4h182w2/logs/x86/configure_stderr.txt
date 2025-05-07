@@ -1,0 +1,33 @@
+CMake Warning at C:/Users/AnhTuan/AppData/Local/Android/Sdk/ndk/29.0.13113456/build/cmake/android-legacy.toolchain.cmake:440 (message):
+  An old version of CMake is being used that cannot automatically detect
+  compiler attributes.  Compiler identification is being bypassed.  Some
+  values may be wrong or missing.  Update to CMake 3.19 or newer to use
+  CMake's built-in compiler identification.
+Call Stack (most recent call first):
+  C:/Users/AnhTuan/AppData/Local/Android/Sdk/ndk/29.0.13113456/build/cmake/android.toolchain.cmake:55 (include)
+  C:/Users/AnhTuan/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineSystem.cmake:93 (include)
+  CMakeLists.txt:3 (project)
+
+
+CMake Warning at C:/Users/AnhTuan/AppData/Local/Android/Sdk/ndk/29.0.13113456/build/cmake/android-legacy.toolchain.cmake:440 (message):
+  An old version of CMake is being used that cannot automatically detect
+  compiler attributes.  Compiler identification is being bypassed.  Some
+  values may be wrong or missing.  Update to CMake 3.19 or newer to use
+  CMake's built-in compiler identification.
+Call Stack (most recent call first):
+  C:/Users/AnhTuan/AppData/Local/Android/Sdk/ndk/29.0.13113456/build/cmake/android.toolchain.cmake:55 (include)
+  G:/github/MyOpenCV/sdk/.cxx/Debug/s4h182w2/x86/CMakeFiles/3.18.1-g262b901-dirty/CMakeSystem.cmake:6 (include)
+  G:/github/MyOpenCV/sdk/.cxx/Debug/s4h182w2/x86/CMakeFiles/CMakeTmp/CMakeLists.txt:2 (project)
+
+
+CMake Warning at C:/Users/AnhTuan/AppData/Local/Android/Sdk/ndk/29.0.13113456/build/cmake/android-legacy.toolchain.cmake:440 (message):
+  An old version of CMake is being used that cannot automatically detect
+  compiler attributes.  Compiler identification is being bypassed.  Some
+  values may be wrong or missing.  Update to CMake 3.19 or newer to use
+  CMake's built-in compiler identification.
+Call Stack (most recent call first):
+  C:/Users/AnhTuan/AppData/Local/Android/Sdk/ndk/29.0.13113456/build/cmake/android.toolchain.cmake:55 (include)
+  G:/github/MyOpenCV/sdk/.cxx/Debug/s4h182w2/x86/CMakeFiles/3.18.1-g262b901-dirty/CMakeSystem.cmake:6 (include)
+  G:/github/MyOpenCV/sdk/.cxx/Debug/s4h182w2/x86/CMakeFiles/CMakeTmp/CMakeLists.txt:2 (project)
+
+

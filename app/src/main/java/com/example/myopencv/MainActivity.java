@@ -1,65 +1,54 @@
 package com.example.myopencv;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.lifecycle.LiveData;
-import androidx.paging.LivePagedListBuilder;
-import androidx.paging.PagedList;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
-
-import android.icu.text.LocaleDisplayNames;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
-import android.view.SurfaceView;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.Toast;
 
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity  {
 
     String TAG = "TuanNA";
     RecyclerView recyclerView;
-    UserAdapter adapter;
-    List<User> mListUsers = new ArrayList<>();
+    UserManualAdapter adapter;
+    List<User> mListUsers;
 
-
-
-    UserDataSourceFactory factory;
-    //LiveData<PagedList<User>> pagedListLiveData;
-
-    //swipte to refresh
     SwipeRefreshLayout swipeRefreshLayout;
 
 
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalPages = 1;
+
+    private Spinner pageSizeSpinner;
+    private Button pageIndicator, btnFirst, btnNext, btnPre, btnLast;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-//        //gen list
-//        mListUsers = getListUsers();
+        //gen list
+        mListUsers = getListUsers();
 
         //recycle
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         //adapter
-        adapter = new UserAdapter();
-        adapter.setOnItemClickListener(new UserAdapter.OnItemClickListener() {
+        adapter = new UserManualAdapter();
+        adapter.setOnItemClickListener(new UserManualAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(User user) {
                 Toast.makeText(getApplicationContext(), "Detail: user = " + user.name, Toast.LENGTH_SHORT).show();
@@ -67,17 +56,6 @@ public class MainActivity extends AppCompatActivity  {
         });
         recyclerView.setAdapter(adapter);
 
-        factory = new UserDataSourceFactory(mListUsers);
-
-        PagedList.Config config = new PagedList.Config.Builder()
-                .setEnablePlaceholders(false)
-                .setPageSize(UserDataSource.PAGE_SIZE)
-                .build();
-
-        new LivePagedListBuilder<>(factory, config).build()
-            .observe(this, pagedList -> adapter.submitList(pagedList));
-
-        setupSearch();
 
         //Reload data
         swipeRefreshLayout = findViewById(R.id.swipeRefresh);
@@ -88,20 +66,90 @@ public class MainActivity extends AppCompatActivity  {
             @Override
             public void onRefresh() {
                 Log.i(TAG, "onRefresh called from SwipeRefreshLayout");
-                /**
-                 * Execute the background task, which uses {@link android.os.AsyncTask} to load the data.
-                 */
-                new DummyBackgroundTask().execute();
+                initiateRefresh();
             }
         });
 
+        //ui
+        pageSizeSpinner = findViewById(R.id.page_size_spinner);
+        pageIndicator = findViewById(R.id.btnPageIndicator);
+        btnFirst = findViewById(R.id.btnFirst);
+        btnLast = findViewById(R.id.btnLast);
+        btnPre = findViewById(R.id.btnPre);
+        btnNext = findViewById(R.id.btnNext);
+
+        setupSpinner();
+        setupButtons();
+        updatePagination();
+
+    }
+
+    private void setupSpinner() {
+        pageSizeSpinner.setSelection(0);
+        pageSizeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                pageSize = Integer.parseInt(parent.getItemAtPosition(position).toString());
+                currentPage = 1;
+                updatePagination();
+            }
+
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+    }
+
+    private void setupButtons() {
+        findViewById(R.id.btnFirst).setOnClickListener(v -> {
+            currentPage = 1;
+            updatePagination();
+        });
+
+        findViewById(R.id.btnPre).setOnClickListener(v -> {
+            if (currentPage > 1) {
+                currentPage--;
+                updatePagination();
+            }
+        });
+
+        findViewById(R.id.btnNext).setOnClickListener(v -> {
+            if (currentPage < totalPages) {
+                currentPage++;
+                updatePagination();
+            }
+        });
+
+        findViewById(R.id.btnLast).setOnClickListener(v -> {
+            currentPage = totalPages;
+            updatePagination();
+        });
+    }
 
 
+    private void updatePagination() {
+        if (mListUsers == null || mListUsers.isEmpty()) return;
+
+        totalPages = (int) Math.ceil((double) mListUsers.size() / pageSize);
+        currentPage = Math.max(1, Math.min(currentPage, totalPages));  // Clamp
+
+        int start = (currentPage - 1) * pageSize;
+        int end = Math.min(start + pageSize, mListUsers.size());
+
+        List<User> sublist = mListUsers.subList(start, end);
+        adapter.submitList(sublist);  // adapter handles copy and notify
+
+        pageIndicator.setText("Page " + currentPage + " / " + totalPages);
     }
 
 
 
 
+    private void initiateRefresh() {
+        Log.i(TAG, "initiateRefresh");
+
+        /**
+         * Execute the background task, which uses {@link android.os.AsyncTask} to load the data.
+         */
+        new DummyBackgroundTask().execute();
+    }
 
     private class DummyBackgroundTask extends AsyncTask<Void, Void, List<String>> {
 
@@ -111,14 +159,9 @@ public class MainActivity extends AppCompatActivity  {
         protected List<String> doInBackground(Void... params) {
             // Sleep for a small amount of time to simulate a background-task
             try {
-                //Thread.sleep(TASK_DURATION);
-                //gen list
-                mListUsers = getListUsers();
-
-
-            } catch (Exception e) {
+                Thread.sleep(TASK_DURATION);
+            } catch (InterruptedException e) {
                 e.printStackTrace();
-                Log.e(TAG, e.getMessage());
             }
 
             // Return a new random list of cheeses
@@ -130,52 +173,20 @@ public class MainActivity extends AppCompatActivity  {
             super.onPostExecute(result);
 
             // Tell the Fragment that the refresh has completed
-            factory.updateListData(mListUsers); // refresh the factory’s internal list
-
-            //Rebuild the LivePagedListBuilder
-            PagedList.Config config = new PagedList.Config.Builder()
-                    .setEnablePlaceholders(false)
-                    .setPageSize(UserDataSource.PAGE_SIZE)
-                    .build();
-
-            //Submit it again to the adapter.
-            new LivePagedListBuilder<>(factory, config)
-                    .build()
-                    .observe(MainActivity.this, users -> adapter.submitList(users));
-
-            swipeRefreshLayout.setRefreshing(false);
-            Toast.makeText(getApplicationContext(), "Updated!", Toast.LENGTH_SHORT).show();
+            onRefreshComplete(result);
         }
     }
 
+    private void onRefreshComplete(List<String> result) {
+        Log.i(TAG, "onRefreshComplete");
 
-    private void setupSearch() {
-        EditText searchInput = findViewById(R.id.edtSearch);
-        searchInput.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            @Override
-            public void afterTextChanged(Editable s) {
-                search(s.toString());
-            }
-        });
+        //guestAdapter.notifyDataSetChanged();
+        Toast.makeText(getApplicationContext(), "Updated!", Toast.LENGTH_SHORT).show();
+
+        // Stop the refreshing indicator
+        swipeRefreshLayout.setRefreshing(false);
     }
 
-    private void search(String query) {
-        factory.setSearchQuery(query);
-
-        // Rebuild the PagedList with filtered data
-        PagedList.Config config = new PagedList.Config.Builder()
-                .setEnablePlaceholders(false)
-                .setPageSize(UserDataSource.PAGE_SIZE)
-                .build();
-
-        new LivePagedListBuilder<>(factory, config)
-                .build()
-                .observe(this, users -> adapter.submitList(users));
-    }
 
     List<User> getListUsers(){
         List<User> users = new ArrayList<>();
