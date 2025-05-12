@@ -282,26 +282,6 @@ public class CameraConnectionFragment extends Fragment {
         return mView;
     }
 
-    private void takePicture() {
-        if (cameraDevice == null) return;
-
-        try {
-            final CaptureRequest.Builder captureBuilder =
-                    cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-            captureBuilder.addTarget(previewReader.getSurface());
-            captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,
-                    CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-
-            // Orientation
-            int rotation = getActivity().getWindowManager().getDefaultDisplay().getRotation();
-            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS.get(rotation));
-
-            captureSession.capture(captureBuilder.build(), captureCallback, backgroundHandler);
-            showToast("Picture Taken");
-        } catch (CameraAccessException e) {
-            Log.e(TAG, "CameraAccessException during capture: " + e.getMessage());
-        }
-    }
 
 
     @Override
@@ -309,10 +289,9 @@ public class CameraConnectionFragment extends Fragment {
         textureView = (AutoFitTextureView) view.findViewById(R.id.texture);
     }
 
+    public boolean isCamOpen = false;
 
-    @Override
-    public void onResume() {
-        super.onResume();
+    public void openCamera2(){
         startBackgroundThread();
 
         // When the screen is turned off and turned back on, the SurfaceTexture is already
@@ -320,16 +299,27 @@ public class CameraConnectionFragment extends Fragment {
         // a camera and start preview from here (otherwise, we wait until the surface is ready in
         // the SurfaceTextureListener).
         if (textureView.isAvailable()) {
-            openCamera(textureView.getWidth(), textureView.getHeight());
+            isCamOpen = openCamera(textureView.getWidth(), textureView.getHeight());
         } else {
             textureView.setSurfaceTextureListener(surfaceTextureListener);
         }
     }
 
+    public void closeCamera2(){
+        if(isCamOpen){
+            closeCamera();
+            stopBackgroundThread();
+        }
+    }
+    @Override
+    public void onResume() {
+        super.onResume();
+
+    }
+
     @Override
     public void onPause() {
-        closeCamera();
-        stopBackgroundThread();
+
         super.onPause();
     }
 
@@ -384,7 +374,7 @@ public class CameraConnectionFragment extends Fragment {
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @SuppressLint("MissingPermission")
-    private void openCamera(final int width, final int height) {
+    private boolean openCamera(final int width, final int height) {
         setUpCameraOutputs();
         configureTransform(width, height);
         final Activity activity = getActivity();
@@ -397,14 +387,18 @@ public class CameraConnectionFragment extends Fragment {
 
             manager.openCamera(cameraId, stateCallback, backgroundHandler);
         } catch (final CameraAccessException e) {
-            // LOGGER.e(e, "Exception!");
+            Log.e(TAG, "Exception! " + e.getMessage());
+            return false;
         } catch (final InterruptedException e) {
-            throw new RuntimeException("Interrupted while trying to lock camera opening.", e);
+            Log.e(TAG, "Interrupted while trying to lock camera opening." + e.getMessage());
+            return false;
         }
+
+        return true;
     }
 
     /** Closes the current {@link CameraDevice}. */
-    private void closeCamera() {
+    private boolean closeCamera() {
         try {
             cameraOpenCloseLock.acquire();
             if (null != captureSession) {
@@ -420,10 +414,13 @@ public class CameraConnectionFragment extends Fragment {
                 previewReader = null;
             }
         } catch (final InterruptedException e) {
-            throw new RuntimeException("Interrupted while trying to lock camera closing.", e);
+            Log.e(TAG, "Interrupted while trying to lock camera closing." + e.getMessage());
+            return false;
+
         } finally {
             cameraOpenCloseLock.release();
         }
+        return true;
     }
 
     /** Starts a background thread and its {@link Handler}. */
@@ -508,7 +505,7 @@ public class CameraConnectionFragment extends Fragment {
                                 captureSession.setRepeatingRequest(
                                         previewRequest, captureCallback, backgroundHandler);
                             } catch (final CameraAccessException e) {
-                                //       LOGGER.e(e, "Exception!");
+                                Log.e(TAG, "Exception!" + e.getMessage());
                             }
                         }
 

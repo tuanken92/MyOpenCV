@@ -21,12 +21,16 @@ import android.view.Surface;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import android.widget.ListView;
 import android.widget.TextView;
 import com.example.myopencv.model.camera.ImageUtils;
+import com.example.myopencv.model.minio.MinioHelper;
+import com.example.myopencv.model.minio.MinioUploader;
 import com.gun0912.tedpermission.PermissionListener;
 import com.gun0912.tedpermission.normal.TedPermission;
 
@@ -37,13 +41,27 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity  implements ImageReader.OnImageAvailableListener{
+public class MainActivity extends AppCompatActivity  implements ImageReader.OnImageAvailableListener,
+                                                                View.OnClickListener{
 
     String TAG = "TuanNA";
+
+
+    //minio
+    String mFilename = null;
+    MinioHelper mMinioHelper = null;
+
     private int sensorOrientation;
 
+    CameraConnectionFragment fragment;
 
-    Button btnCapture;
+    Button btnCapture, btnStart, btnStop, btnPushMinIO;
+    Spinner spinnerAngle;
+    TextView tvStatus;
+
+    ArrayAdapter<String> adapter_angle;
+    String[] angle = {"0", "90", "180", "270"};
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,33 +69,84 @@ public class MainActivity extends AppCompatActivity  implements ImageReader.OnIm
         setContentView(R.layout.activity_main);
 
         //permission
-        //Require permission
-        TedPermission.create()
-                .setPermissionListener(permissionlistener)
-                .setDeniedMessage("If you reject permission,you can not use this service\n\nPlease turn on permissions at [Setting] > [Permission]")
-                .setPermissions(
-                        Manifest.permission.CAMERA,
-                        Manifest.permission.READ_EXTERNAL_STORAGE,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE
-                )
-                .check();
+        reqPermission();
 
+
+
+        //init view
+        initView();
+
+
+        //set fragment
         setFragment();
 
+        //init variable
+        initVar();
+
+    }
+
+    void initVar(){
+        mMinioHelper = new MinioHelper();
+    }
+    void initView(){
         btnCapture = findViewById(R.id.btnCapture);
-        btnCapture.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
+        btnStart = findViewById(R.id.btnStart);
+        btnStop = findViewById(R.id.btnStop);
+        btnPushMinIO = findViewById(R.id.btnPushMinio);
+
+        btnCapture.setOnClickListener(this);
+        btnStart.setOnClickListener(this);
+        btnStop.setOnClickListener(this);
+        btnPushMinIO.setOnClickListener(this);
+
+
+        //spinner
+        spinnerAngle = findViewById(R.id.spnAngle);
+        adapter_angle = new ArrayAdapter<String>(getApplicationContext(),
+                            android.R.layout.simple_spinner_item, angle);
+        adapter_angle.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerAngle.setAdapter(adapter_angle);
+        spinnerAngle.setSelection(3);
+
+
+        //status
+        tvStatus = findViewById(R.id.cameraStatus);
+
+    }
+
+    @Override
+    public void onClick(View view) {
+        switch (view.getId()){
+            case R.id.btnPushMinio:
+                boolean bUpload = MinioHelper.uploadImage(mFilename);
+                tvStatus.setText("upload to minio = " + bUpload);
+                break;
+
+                case R.id.btnStart:
+                fragment.openCamera2();
+                tvStatus.setText("play camera");
+                break;
+
+            case R.id.btnStop:
+                fragment.closeCamera2();
+                tvStatus.setText("close camera");
+                break;
+            case R.id.btnCapture:
+                int angle = Integer.parseInt(spinnerAngle.getSelectedItem().toString());
+                Log.i(TAG, "getSelectedItem = " + angle);
                 if (rgbFrameBitmap != null) {
-                    saveBitmap(rotateBitmap(rgbFrameBitmap,90));
+                    saveBitmap(rotateBitmap(rgbFrameBitmap,angle));
                 } else {
                     Toast.makeText(getApplicationContext(),
                             "No image available yet",
                             Toast.LENGTH_SHORT).show();
                 }
-            }
-        });
+                break;
+
+
+        }
     }
+
 
     private Bitmap rotateBitmap(Bitmap source, float angle) {
         Matrix matrix = new Matrix();
@@ -105,6 +174,8 @@ public class MainActivity extends AppCompatActivity  implements ImageReader.OnIm
     //TODO fragment which show llive footage from camera
     int previewHeight = 0,previewWidth = 0;
     protected void setFragment() {
+
+        //get camera id from camera manager
         final CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         String cameraId = null;
         try {
@@ -118,7 +189,8 @@ public class MainActivity extends AppCompatActivity  implements ImageReader.OnIm
             e.printStackTrace();
             Log.e(TAG, e.getMessage());
         }
-        Fragment fragment;
+
+        //prepare fragment
         CameraConnectionFragment camera2Fragment =
                 CameraConnectionFragment.newInstance(
                         new CameraConnectionFragment.ConnectionCallback() {
@@ -144,7 +216,6 @@ public class MainActivity extends AppCompatActivity  implements ImageReader.OnIm
 
         fragment = camera2Fragment;
         replaceFragment(fragment);
-        //getFragmentManager().beginTransaction().replace(R.id.container, fragment).commit();
     }
 
     public void replaceFragment(Fragment fragment) {
@@ -255,7 +326,8 @@ public class MainActivity extends AppCompatActivity  implements ImageReader.OnIm
         }
     }
 
-    private void saveBitmap(Bitmap bitmap) {
+
+    private boolean saveBitmap(Bitmap bitmap) {
         File dir = new File(getExternalFilesDir(null), "Pictures");
         if (!dir.exists()) {
             dir.mkdirs();
@@ -266,11 +338,15 @@ public class MainActivity extends AppCompatActivity  implements ImageReader.OnIm
 
         try (FileOutputStream out = new FileOutputStream(file)) {
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
-            Toast.makeText(this, "Saved: " + file.getAbsolutePath(), Toast.LENGTH_LONG).show();
-            Log.d(TAG, "Saved image to: " + file.getAbsolutePath());
+            mFilename = file.getAbsolutePath();
+            Toast.makeText(this, "Saved: " + mFilename, Toast.LENGTH_LONG).show();
+            Log.d(TAG, "Saved image to: " + mFilename);
         } catch (IOException e) {
             Log.e(TAG, "Failed to save image: " + e.getMessage());
+            return false;
         }
+
+        return true;
     }
 
     @Override
@@ -290,5 +366,18 @@ public class MainActivity extends AppCompatActivity  implements ImageReader.OnIm
         super.onDestroy();
     }
 
+    void reqPermission(){
+        //Require permission
+        TedPermission.create()
+                .setPermissionListener(permissionlistener)
+                .setDeniedMessage("If you reject permission,you can not use this service\n\nPlease turn on permissions at [Setting] > [Permission]")
+                .setPermissions(
+                        Manifest.permission.CAMERA,
+                        Manifest.permission.READ_EXTERNAL_STORAGE,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                        Manifest.permission.INTERNET
+                )
+                .check();
+    }
 
 }

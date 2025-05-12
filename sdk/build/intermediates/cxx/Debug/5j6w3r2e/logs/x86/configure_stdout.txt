@@ -1,3 +1,0 @@
--- Configuring done
--- Generating done
--- Build files have been written to: G:/Program/Android/MyOpenCV/sdk/.cxx/Debug/5j6w3r2e/x86
