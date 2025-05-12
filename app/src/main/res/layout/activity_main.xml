@@ -7,14 +7,40 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <!-- [camera_view] -->
-    <org.opencv.android.JavaCameraView
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
-        android:visibility="gone"
-        android:id="@+id/tutorial1_activity_java_surface_view"
-        opencv:show_fps="true"
-        opencv:camera_id="any" />
-    <!-- [camera_view] -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="left|center"
+        android:layout_gravity="top|center_horizontal"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnCapture"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="capture"/>
+
+
+        <Spinner
+            android:id="@+id/spnAngle"
+            android:inputType="number"
+            android:layout_marginLeft="100dp"
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"/>
+
+    </LinearLayout>
+
+
+
+
+    <FrameLayout
+        android:id="@+id/container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/black">
+
+    </FrameLayout>
+
+
 
 </FrameLayout>
