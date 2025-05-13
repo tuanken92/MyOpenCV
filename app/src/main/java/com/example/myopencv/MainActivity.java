@@ -11,26 +11,25 @@ import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraManager;
-import android.icu.text.LocaleDisplayNames;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
-import android.view.SurfaceView;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.Toast;
 
-import android.widget.ListView;
 import android.widget.TextView;
+
+import com.example.myopencv.model.UserResponse;
+import com.example.myopencv.model.api.CallApi;
 import com.example.myopencv.model.camera.ImageUtils;
 import com.example.myopencv.model.minio.MinioHelper;
-import com.example.myopencv.model.minio.MinioUploader;
 import com.gun0912.tedpermission.PermissionListener;
 import com.gun0912.tedpermission.normal.TedPermission;
 
@@ -38,7 +37,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity  implements ImageReader.OnImageAvailableListener,
@@ -48,14 +46,20 @@ public class MainActivity extends AppCompatActivity  implements ImageReader.OnIm
 
 
     //minio
-    String mFilename = null;
-    MinioHelper mMinioHelper = null;
+    String mFilePath = null;
+    String mFilenameMinIO = null;
+    //MinioHelper mMinioHelper = null;
 
     private int sensorOrientation;
 
     CameraConnectionFragment fragment;
 
     Button btnCapture, btnStart, btnStop, btnPushMinIO;
+    Button btnUpdate, btnGet;
+    Button btnInsert;
+
+    EditText edtData, edtUID;
+
     Spinner spinnerAngle;
     TextView tvStatus;
 
@@ -71,24 +75,33 @@ public class MainActivity extends AppCompatActivity  implements ImageReader.OnIm
         //permission
         reqPermission();
 
-
-
         //init view
         initView();
-
 
         //set fragment
         setFragment();
 
         //init variable
-        initVar();
+        //initVar();
 
     }
 
-    void initVar(){
-        mMinioHelper = new MinioHelper();
-    }
+//  void initVar(){
+//        mMinioHelper = new MinioHelper();
+//    }
     void initView(){
+        btnInsert = findViewById(R.id.btnInsert);
+        btnInsert.setOnClickListener(this);
+
+        btnUpdate = findViewById(R.id.btnUpdate);
+        btnUpdate.setOnClickListener(this);
+
+        btnGet = findViewById(R.id.btnGet);
+        btnGet.setOnClickListener(this);
+
+        edtData = findViewById(R.id.edtData);
+        edtUID = findViewById(R.id.edtUID);
+
         btnCapture = findViewById(R.id.btnCapture);
         btnStart = findViewById(R.id.btnStart);
         btnStop = findViewById(R.id.btnStop);
@@ -118,8 +131,21 @@ public class MainActivity extends AppCompatActivity  implements ImageReader.OnIm
     public void onClick(View view) {
         switch (view.getId()){
             case R.id.btnPushMinio:
-                boolean bUpload = MinioHelper.uploadImage(mFilename);
-                tvStatus.setText("upload to minio = " + bUpload);
+                mFilenameMinIO = MinioHelper.uploadImage(mFilePath);
+                if(mFilenameMinIO != null) {
+                    tvStatus.setText("upload to minio = " + true);
+                    Toast.makeText(getApplicationContext(), mFilenameMinIO, Toast.LENGTH_SHORT).show();
+                }
+                break;
+
+            case R.id.btnGet:
+                CallApi.getCustomer();
+                break;
+            case R.id.btnUpdate:
+                CallApi.updateCustomer(new UserResponse(edtData.getText().toString(), mFilenameMinIO));
+                break;
+            case R.id.btnInsert:
+                CallApi.insertCustomer(new UserResponse(edtUID.getText().toString(), mFilenameMinIO));
                 break;
 
                 case R.id.btnStart:
@@ -338,9 +364,9 @@ public class MainActivity extends AppCompatActivity  implements ImageReader.OnIm
 
         try (FileOutputStream out = new FileOutputStream(file)) {
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
-            mFilename = file.getAbsolutePath();
-            Toast.makeText(this, "Saved: " + mFilename, Toast.LENGTH_LONG).show();
-            Log.d(TAG, "Saved image to: " + mFilename);
+            mFilePath = file.getAbsolutePath();
+            Toast.makeText(this, "Saved: " + mFilePath, Toast.LENGTH_LONG).show();
+            Log.d(TAG, "Saved image to: " + mFilePath);
         } catch (IOException e) {
             Log.e(TAG, "Failed to save image: " + e.getMessage());
             return false;

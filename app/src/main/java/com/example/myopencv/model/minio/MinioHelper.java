@@ -10,10 +10,17 @@ import io.minio.UploadObjectArgs;
 import okhttp3.OkHttpClient;
 
 public class MinioHelper {
-    private static final String ENDPOINT = "http://192.168.1.225:9000";
-    private static final String ACCESS_KEY = "q5PBhI17XVkfvuAyXIEu";
-    private static final String SECRET_KEY = "IwtMQAIxyrTepXtAUwkaRDpSypmF7D7WNycHGXP6";
-    private static final String BUCKET_NAME = "my-bucket";
+//    private static final String ENDPOINT = "http://192.168.1.225:9000";
+//    private static final String ACCESS_KEY = "q5PBhI17XVkfvuAyXIEu";
+//    private static final String SECRET_KEY = "IwtMQAIxyrTepXtAUwkaRDpSypmF7D7WNycHGXP6";
+//    private static final String BUCKET_NAME = "my-bucket";
+
+
+    private static final String ENDPOINT = "http://192.168.3.69:9000";
+    private static final String ACCESS_KEY = "CLR1bkuA5m9VT5DQtBms";
+    private static final String SECRET_KEY = "yM1yfUIbTxeFcdXzx8gCf6xFHNhWbWpJ1lPVax8w";
+    private static final String BUCKET_NAME = "image";
+
     private static MinioClient minioClient;
 
     public static void uploadImageToMinIO(File fileImage) {
@@ -45,7 +52,8 @@ public class MinioHelper {
     }
     public static String TAG = "MinIO";
 
-    public static boolean uploadImage(String fileName) {
+    public static String uploadImage(String fileName) {
+        String objectName = null;
         try {
 
             // 0. Set XML parser factories explicitly for Android
@@ -61,11 +69,14 @@ public class MinioHelper {
                     .httpClient(new OkHttpClient())
                     .build();
 
+            Log.d(TAG, fileName);
             File fileImage = new File(fileName);
 
             // 2. Tên bucket & tên object
             String bucketName = BUCKET_NAME;
-            String objectName = fileImage.getName();
+            objectName = fileImage.getName();
+            Log.d(TAG, objectName);
+
             // Optional: ensure bucket exists
             boolean found = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
             if (!found) {
@@ -75,6 +86,8 @@ public class MinioHelper {
                 Log.d(TAG, "OK <= bucket name = " + bucketName);
             }
 
+            // PUT URL format: http://endpoint/bucket-name/object-name
+            String url = ENDPOINT + "/" + BUCKET_NAME + "/" + objectName;
 
             // 3. Upload file
             minioClient.uploadObject(
@@ -84,12 +97,12 @@ public class MinioHelper {
                             .filename(fileImage.getAbsolutePath())
                             .build()
             );
-            Log.d("MinIO", "✅ Upload thành công: " + objectName);
+            Log.d("MinIO", "✅ Upload thành công: " + url);
         } catch (Exception e) {
             Log.e("MinIO", "❌ Lỗi khi upload: " + e.getMessage(), e);
-            return false;
+            return null;
         }
-        return true;
+        return objectName;
     }
 
 }

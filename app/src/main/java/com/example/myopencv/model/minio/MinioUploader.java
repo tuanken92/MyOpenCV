@@ -14,11 +14,15 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class MinioUploader {
-    private static final String ENDPOINT = "http://192.168.1.225:9000";
-    private static final String ACCESS_KEY = "q5PBhI17XVkfvuAyXIEu";
-    private static final String SECRET_KEY = "IwtMQAIxyrTepXtAUwkaRDpSypmF7D7WNycHGXP6";
-    private static final String BUCKET_NAME = "my-bucket";
+//    private static final String ENDPOINT = "http://192.168.1.225:9000";
+//    private static final String ACCESS_KEY = "q5PBhI17XVkfvuAyXIEu";
+//    private static final String SECRET_KEY = "IwtMQAIxyrTepXtAUwkaRDpSypmF7D7WNycHGXP6";
+//    private static final String BUCKET_NAME = "my-bucket";
 
+    private static final String ENDPOINT = "http://192.168.3.69:9000";
+    private static final String ACCESS_KEY = "CLR1bkuA5m9VT5DQtBms";
+    private static final String SECRET_KEY = "yM1yfUIbTxeFcdXzx8gCf6xFHNhWbWpJ1lPVax8w";
+    private static final String BUCKET_NAME = "image";
 
     public static void uploadImage(File imageFile, String objectName) {
         if (!imageFile.exists()) {
